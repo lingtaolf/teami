@@ -4,57 +4,98 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI Team Collaboration Platform - FastAPI backend with Vue.js frontend for managing AI team collaboration workspaces and projects.
+Teami is an AI team collaboration platform with a primary desktop application:
+- **Desktop version** (`desktop-app/`): The main Electron application with local data persistence
+- **UI reference** (`ui_files/`): Temporary reference UI code - **DO NOT MODIFY** files in this directory
+
+**IMPORTANT**: The `ui_files/` directory contains only temporary reference code for UI design. All development work should be done in the `desktop-app/` directory.
 
 ## Development Commands
 
-### Backend (Python/FastAPI)
-- Start development server: `python -m uvicorn src.main:app --reload --host 0.0.0.0 --port 8000`
-- Install dependencies: `pip install -r requirements.txt`
-- Run single test: `python -m pytest src/tests/test_projects.py::specific_test_name -v`
-- Run all tests: `python -m pytest src/tests/ -v`
+### Desktop Version (desktop-app/)
+```bash
+cd desktop-app
+npm install          # Install dependencies including Electron
+npm run dev          # Start concurrent Vite + Electron development
+npm run build        # Build renderer process only
+npm run package:mac  # Build and package macOS .dmg installer
+npm run dist         # Build and package for all configured platforms
+```
 
-### Frontend (Vue.js)
-- Development server: `cd web && npm run dev`
-- Build production: `cd web && npm run build`
-- Run tests: `cd web && npm run test`
-- Lint code: `cd web && npm run lint`
-- Install dependencies: `cd web && npm install`
+Note: Desktop packaging requires Xcode Command Line Tools on macOS.
 
 ## Architecture
 
-### Backend Structure
-- **Domain-driven modules**: `src/projects/` and `src/workspaces/` contain complete domain slices (models, repository, service, router)
-- **Shared components**: `src/schemas/` for API schemas, `src/db/` for database, `src/exceptions.py` for custom errors
-- **FastAPI app**: `src/main.py` with CORS, exception handlers, and router registration
-- **Configuration**: `src/config.py` uses dataclass with environment variable loading via python-dotenv
+### UI Components (desktop-app/src/)
+The desktop application uses React components with:
+- **Feature components**: Dashboard, ProjectCreationFlow, ProjectWorkspace, AIRolesConfig, etc. in `src/components/`
+- **UI primitives**: Radix UI-based components in `src/components/ui/` following shadcn/ui patterns
+- **Styling**: Tailwind CSS with semantic color variables in `src/styles/globals.css`
+- **Icons**: Lucide React for consistent iconography
 
-### Frontend Structure
-- **Main app**: `web/` is the production Vue.js frontend
-- **Features**: Organized in `web/src/features/` (dashboard, projects, workspace, etc.)
-- **Components**: Reusable UI components in `web/src/components/`
-- **API layer**: Type-safe API clients in `web/src/api/`
-- **Temporary assets**: `ui_files/` contains temporary UI styles and references (do not use for production)
+### Desktop-Specific Features
+- **Data persistence**: SQLite database via `better-sqlite3` for workspace data
+- **Native APIs**: Exposed through `electron/preload.js` for secure renderer-main communication
+- **Window management**: Custom title bar and native menu integration
+
+### Technology Stack
+- **Frontend**: React 18 + TypeScript + Tailwind CSS
+- **Build tool**: Vite 6.3.5 with SWC for fast compilation
+- **UI library**: Radix UI primitives + custom styled components
+- **Desktop runtime**: Electron 30.0.0
+- **Database** (desktop only): better-sqlite3 for local storage
+
+## Code Conventions
+
+### Component Structure
+- Use TypeScript function components with 2-space indentation
+- Prefer `const` declarations and single quotes
+- Follow the patterns established in existing components like `App.tsx`
+- Keep feature components flat in `src/components/`
+- Place reusable UI primitives in `src/components/ui/`
+
+### Styling Approach
+- Use Tailwind utility classes for styling
+- Leverage the `cn` helper from `src/components/ui/utils.ts` for conditional classes
+- Extend semantic color variables in `globals.css` rather than hardcoding colors
+- Maintain both light and dark theme variants when adding new colors
+
+### Import Aliases
+The desktop application uses `@/` as an alias for the `desktop-app/src/` directory.
+
+## Key Development Notes
+
+### Testing
+Currently no automated test suite is configured. Document manual verification steps in PRs and list key scenarios tested (creation flows, workspace navigation, role modals).
+
+### Guidelines Reference
+Important development guidelines are documented in:
+- `AGENTS.md`: Repository-level coding standards and conventions
+- `desktop-app/README.md`: Desktop-specific setup and packaging instructions
 
 ### Data Flow
-- SQLite database with UUID-based entities (Workspace, Project)
-- Repository pattern for data access
-- Service layer for business logic
-- Router layer for HTTP endpoints
-- Standardized API responses via `APIResponse` schema
+The desktop application uses local SQLite for workspace persistence with a 5-workspace limit.
 
-## Key Files
+### Development Tips
+- Desktop app automatically opens DevTools in development mode
+- External links in desktop app open in system browser, not in-app
+- Use existing Radix UI patterns before creating custom components
+- Reference `ui_files/` for design patterns but never modify files there
 
-- `src/main.py:23` - FastAPI app setup and middleware
-- `src/config.py:52` - Settings management with caching
-- `src/projects/router.py` - Project API endpoints
-- `src/workspaces/router.py` - Workspace API endpoints
-- `web/src/main.ts` - Vue app entry point
-- `web/package.json:5-11` - Frontend build scripts
+## File Organization
 
-## Important Notes
+```
+teami/
+├── ui_files/           # TEMPORARY REFERENCE ONLY - DO NOT MODIFY
+│   └── src/           # UI reference code for design patterns
+├── desktop-app/        # MAIN APPLICATION - ALL WORK HERE
+│   ├── electron/       # Main process and preload scripts
+│   ├── src/           # React components and application code
+│   │   ├── components/ # Feature components + UI primitives
+│   │   ├── styles/     # Global CSS and theme variables
+│   │   └── main.tsx    # Application entry point
+│   └── package.json   # Dependencies and build scripts
+└── AGENTS.md          # Repository guidelines and conventions
+```
 
-- **Directory structure**: `web/` is the production frontend, `ui_files/` contains temporary UI styles and references
-- **No Poetry setup**: Despite AGENTS.md mentions, use pip with requirements.txt
-- **Database**: SQLite stored at `.sqlite/app.db` (configurable via DATABASE_PATH env var)
-- **CORS origins**: Default to localhost:5173 for development, configurable via CORS_ORIGINS env var
+**CRITICAL**: All development work must be done in `desktop-app/`. The `ui_files/` directory is for reference only and should never be modified.

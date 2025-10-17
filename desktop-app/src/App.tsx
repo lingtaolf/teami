@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { WorkspaceManager } from './components/WorkspaceManager';
+import { Dashboard } from './components/Dashboard';
+import type { WorkspaceRecord } from './types/global';
 
-type ViewType = 'workspace' | 'teams' | 'members';
+type ViewType = 'workspace' | 'teams' | 'members' | 'dashboard';
 
 function PlaceholderPanel({ title, description }: { title: string; description: string }) {
   return (
@@ -19,11 +21,33 @@ function PlaceholderPanel({ title, description }: { title: string; description: 
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>('workspace');
+  const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceRecord | null>(null);
 
   const renderView = () => {
     switch (currentView) {
       case 'workspace':
-        return <WorkspaceManager />;
+        return <WorkspaceManager onOpenWorkspace={(workspace) => {
+          setCurrentWorkspace(workspace);
+          setCurrentView('dashboard');
+        }} />;
+      case 'dashboard':
+        return (
+          <Dashboard
+            currentWorkspace={currentWorkspace}
+            onBackToWorkspaces={() => {
+              setCurrentWorkspace(null);
+              setCurrentView('workspace');
+            }}
+            onCreateProject={() => {
+              // TODO: 实现创建项目功能
+              console.log('创建新项目');
+            }}
+            onOpenProject={(projectId) => {
+              // TODO: 实现打开项目功能
+              console.log('打开项目:', projectId);
+            }}
+          />
+        );
       case 'teams':
         return (
           <PlaceholderPanel

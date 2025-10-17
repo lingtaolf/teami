@@ -47,21 +47,9 @@ const PAGE_SIZE = 4;
 const NAME_LIMIT = 30;
 const DESCRIPTION_LIMIT = 100;
 
-const DEFAULT_LABELS = [
-  'java',
-  'backend', 
-  'web',
-  'mobile',
-  'data',
-  'ai',
-  'api',
-  'frontend'
-];
-
 const initialForm = {
   name: '',
-  description: '',
-  labels: ''
+  description: ''
 };
 
 function formatDateTime(value?: string | null) {
@@ -81,93 +69,6 @@ function formatDateTime(value?: string | null) {
     return `${year}/${month}/${day} ${hour}:${minute}`;
   } catch {
     return value;
-  }
-}
-
-function getRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
-  if (diffHours < 1) return 'Just now';
-  if (diffHours < 24) return `${diffHours} hours ago`;
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return formatDateTime(dateString);
-}
-
-function getStatusBadge(status: string) {
-  const normalizedStatus = status?.toLowerCase().replace(/\s+/g, '-');
-  const variants = {
-    ready: {
-      variant: 'outline' as const,
-      icon: Clock,
-      label: 'Ready',
-      className: 'bg-gradient-to-r from-blue-400 to-blue-500 border-0 text-white shadow-md'
-    },
-    active: {
-      variant: 'outline' as const,
-      icon: Activity,
-      label: 'Active',
-      className: 'bg-gradient-to-r from-emerald-500 to-teal-600 border-0 text-white shadow-md'
-    },
-    completed: {
-      variant: 'outline' as const,
-      icon: CheckCircle2,
-      label: 'Completed',
-      className: 'bg-gradient-to-r from-purple-500 to-pink-600 border-0 text-white shadow-md'
-    },
-    planning: {
-      variant: 'outline' as const,
-      icon: CalendarClock,
-      label: 'Planning',
-      className: 'bg-gradient-to-r from-orange-400 to-amber-500 border-0 text-white shadow-md'
-    },
-    pending: {
-      variant: 'outline' as const,
-      icon: Clock,
-      label: 'Pending',
-      className: 'bg-gradient-to-r from-sky-400 to-blue-500 border-0 text-white shadow-md'
-    }
-  } as const;
-
-  const formatLabel = (value: string) =>
-    value
-      ? value
-          .replace(/[-_]/g, ' ')
-          .split(' ')
-          .filter(Boolean)
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ')
-      : 'Unknown';
-
-  const config = normalizedStatus
-    ? variants[normalizedStatus as keyof typeof variants]
-    : undefined;
-
-  const statusConfig =
-    config ?? {
-      variant: 'outline' as const,
-      icon: AlertCircle,
-      label: formatLabel(status || 'Unknown'),
-      className: 'bg-gradient-to-r from-slate-500 via-slate-600 to-slate-700 border-0 text-white shadow-md'
-    };
-  const Icon = statusConfig.icon;
-
-  return (
-    <Badge variant={statusConfig.variant} className={statusConfig.className}>
-      <Icon className="mr-1 h-3 w-3" />
-      {statusConfig.label}
-    </Badge>
-  );
-}
-
-function parseLabels(labelsJson: string): string[] {
-  try {
-    return JSON.parse(labelsJson);
-  } catch {
-    return [];
   }
 }
 
@@ -202,6 +103,8 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
     const start = currentPage * PAGE_SIZE;
     return sortedProjects.slice(start, start + PAGE_SIZE);
   }, [sortedProjects, currentPage]);
+
+  const placeholderCount = Math.max(0, PAGE_SIZE - paginatedProjects.length);
 
   async function refreshProjects(api = projectApi) {
     if (!api || !currentWorkspace) {
@@ -266,15 +169,10 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
         return;
       }
 
-      const labelsArray = formValues.labels.split(',').map(l => l.trim()).filter(Boolean);
-      
       await api.create({
         workspaceUuid: currentWorkspace.workspace_uuid,
         project_name: name,
-        description,
-        status: 'READY', // 明确设置默认状态
-        labels: labelsArray,
-        progress: Math.floor(Math.random() * 50) + 25 // Random progress between 25-75%
+        description
       });
       setFormValues(initialForm);
       setIsDialogOpen(false);
@@ -311,32 +209,12 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
 
   function handleOpenSettings(project: ProjectRecord) {
     setEditingProject(project);
-    const labels = parseLabels(project.labels);
     setEditFormValues({
       name: project.project_name,
-      description: project.description || '',
-      labels: labels.join(', ')
+      description: project.description || ''
     });
     setEditFormError(null);
     setIsEditDialogOpen(true);
-  }
-
-  function handleEditLabelsInput(value: string) {
-    setEditFormValues((prev) => ({
-      ...prev,
-      labels: value
-    }));
-  }
-
-  function addEditDefaultLabel(label: string) {
-    const currentLabels = editFormValues.labels.split(',').map(l => l.trim()).filter(Boolean);
-    if (!currentLabels.includes(label)) {
-      const newLabels = [...currentLabels, label].join(', ');
-      setEditFormValues((prev) => ({
-        ...prev,
-        labels: newLabels
-      }));
-    }
   }
 
   async function handleUpdateProject(event: FormEvent<HTMLFormElement>) {
@@ -362,12 +240,9 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
         return;
       }
 
-      const labelsArray = editFormValues.labels.split(',').map(l => l.trim()).filter(Boolean);
-      
       await api.update(editingProject.project_uuid, { 
         project_name: name, 
-        description,
-        labels: labelsArray
+        description 
       });
       setEditFormValues(initialForm);
       setIsEditDialogOpen(false);
@@ -393,24 +268,6 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
       ...prev,
       description: value.slice(0, DESCRIPTION_LIMIT)
     }));
-  }
-
-  function handleLabelsInput(value: string) {
-    setFormValues((prev) => ({
-      ...prev,
-      labels: value
-    }));
-  }
-
-  function addDefaultLabel(label: string) {
-    const currentLabels = formValues.labels.split(',').map(l => l.trim()).filter(Boolean);
-    if (!currentLabels.includes(label)) {
-      const newLabels = [...currentLabels, label].join(', ');
-      setFormValues((prev) => ({
-        ...prev,
-        labels: newLabels
-      }));
-    }
   }
 
   function handleEditNameInput(value: string) {
@@ -478,9 +335,8 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
 
   return (
     <div className="flex-1 bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 overflow-auto">
-      <div className="max-w-7xl mx-auto p-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+      <div className="max-w-7xl mx-auto p-8 space-y-8">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -491,15 +347,21 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
               返回工作区
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">Projects</h1>
-              <p className="text-slate-600">Manage your AI-powered projects in "{currentWorkspace.name}"</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 border border-indigo-100 shadow-sm">
+                <CalendarClock className="h-4 w-4 text-indigo-500" />
+                <span className="text-xs uppercase tracking-wide text-slate-600">Project Dashboard</span>
+              </div>
+              <h1 className="mt-4 text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">
+                Projects
+              </h1>
+              <p className="text-slate-600 text-sm">Manage your AI-powered projects in "{currentWorkspace.name}"</p>
             </div>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-200">
                 <Plus className="mr-2 h-4 w-4" />
-                Create New Project
+                新建项目
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -544,37 +406,6 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
                     <span className="pointer-events-none absolute bottom-2 right-3 text-xs text-slate-400">
                       {formValues.description.length}/100
                     </span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="project-labels" className="text-sm font-medium text-slate-700">
-                    项目标签
-                  </label>
-                  <div className="relative">
-                    <Input
-                      id="project-labels"
-                      value={formValues.labels}
-                      onChange={(event) => handleLabelsInput(event.target.value)}
-                      placeholder="用逗号分隔，例如：java, backend, web"
-                      className="mb-2"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs text-slate-500">快速添加常用标签：</p>
-                    <div className="flex flex-wrap gap-2">
-                      {DEFAULT_LABELS.map((label) => (
-                        <Button
-                          key={label}
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-3 text-xs"
-                          onClick={() => addDefaultLabel(label)}
-                        >
-                          {label}
-                        </Button>
-                      ))}
-                    </div>
                   </div>
                 </div>
                 {formError ? (
@@ -645,37 +476,6 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
                     </span>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label htmlFor="edit-project-labels" className="text-sm font-medium text-slate-700">
-                    项目标签
-                  </label>
-                  <div className="relative">
-                    <Input
-                      id="edit-project-labels"
-                      value={editFormValues.labels}
-                      onChange={(event) => handleEditLabelsInput(event.target.value)}
-                      placeholder="用逗号分隔，例如：java, backend, web"
-                      className="mb-2"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs text-slate-500">快速添加常用标签：</p>
-                    <div className="flex flex-wrap gap-2">
-                      {DEFAULT_LABELS.map((label) => (
-                        <Button
-                          key={label}
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-3 text-xs"
-                          onClick={() => addEditDefaultLabel(label)}
-                        >
-                          {label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
                 {editFormError ? (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
@@ -707,11 +507,11 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
           </Card>
           <Card className="p-5 border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
             <div className="text-emerald-100 mb-1">Active</div>
-            <div className="text-2xl font-semibold text-white">{projects.filter(p => p.status === 'ACTIVE' || p.status === 'active').length}</div>
+            <div className="text-2xl font-semibold text-white">{projects.filter(p => p.project_name).length}</div>
           </Card>
           <Card className="p-5 border-0 shadow-lg bg-gradient-to-br from-purple-500 to-pink-600 text-white">
             <div className="text-purple-100 mb-1">Completed</div>
-            <div className="text-2xl font-semibold text-white">{projects.filter(p => p.status === 'COMPLETED' || p.status === 'completed').length}</div>
+            <div className="text-2xl font-semibold text-white">0</div>
           </Card>
           <Card className="p-5 border-0 shadow-lg bg-gradient-to-br from-orange-500 to-red-600 text-white">
             <div className="text-orange-100 mb-1">AI Roles Active</div>
@@ -720,162 +520,161 @@ export function Dashboard({ currentWorkspace, onBackToWorkspaces }: DashboardPro
         </div>
 
         {listError ? (
-          <Alert variant="destructive" className="border-0 bg-red-50 shadow-lg max-w-xl mb-8">
+          <Alert variant="destructive" className="border-0 bg-red-50 shadow-lg max-w-xl">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{listError}</AlertDescription>
           </Alert>
         ) : null}
 
-        {/* Projects Grid */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-slate-900">Your Projects</h2>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handlePrevPage}
-                  disabled={currentPage === 0}
-                  className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm text-slate-500 px-2">
-                  {currentPage + 1} / {totalPages}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleNextPage}
-                  disabled={currentPage >= totalPages - 1}
-                  className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+        <div className="flex-1 flex flex-col gap-8 pt-8">
+          <Card className="border-0 shadow-lg bg-white/90 backdrop-blur">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-slate-900 flex items-center gap-2">
+                  Your Projects
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-1 ml-4">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 0}
+                        className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleNextPage}
+                        disabled={currentPage >= totalPages - 1}
+                        className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </CardTitle>
+                {totalPages > 1 && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    第 {currentPage + 1} / {totalPages} 页
+                  </p>
+                )}
               </div>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-2 gap-6">
-              {[...Array(PAGE_SIZE)].map((_, index) => (
-                // eslint-disable-next-line react/no-array-index-key
-                <Card key={index} className="p-6 border-0 shadow-lg bg-white animate-pulse">
-                  <div className="h-5 w-2/3 rounded bg-slate-200 mb-4" />
-                  <div className="h-4 w-full rounded bg-slate-100 mb-2" />
-                  <div className="h-4 w-3/4 rounded bg-slate-100" />
-                </Card>
-              ))}
-            </div>
-          ) : paginatedProjects.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-indigo-200 bg-white/70 p-10 text-center space-y-3">
-              <h3 className="text-lg font-medium text-slate-900">还没有项目</h3>
-              <p className="text-sm text-slate-600">点击右上角的「Create New Project」即可开始。</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-6">
-              {paginatedProjects.map((project) => (
-                <Card 
-                  key={project.project_uuid}
-                  className="p-6 hover:shadow-2xl transition-all cursor-pointer border-0 shadow-lg bg-white hover:scale-[1.02] duration-300 group relative"
-                  onClick={() => handleOpenProject(project)}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-slate-900 mb-1">{project.project_name}</h3>
-                      <p className="text-sm text-slate-600">{project.description || '暂无描述'}</p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {loading ? (
+                <div className="grid grid-cols-2 gap-6 h-[520px]">
+                  {[...Array(PAGE_SIZE)].map((_, index) => (
+                    // eslint-disable-next-line react/no-array-index-key
+                    <div
+                      key={index}
+                      className="rounded-3xl border border-slate-200 bg-white/70 p-6 animate-pulse"
+                    >
+                      <div className="h-5 w-2/3 rounded bg-slate-200" />
+                      <div className="mt-4 h-4 w-full rounded bg-slate-100" />
+                      <div className="mt-2 h-4 w-3/4 rounded bg-slate-100" />
                     </div>
-                    {getStatusBadge(project.status)}
-                  </div>
-                  
-                  <div className="flex gap-2 mb-4">
-                    {parseLabels(project.labels).map((label) => (
-                      <Badge key={label} className="bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200">
-                        {label}
-                      </Badge>
-                    ))}
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm text-slate-600 mb-2">
-                      <span>Progress</span>
-                      <span>{project.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gradient-to-r from-slate-100 to-slate-200 rounded-full h-2 overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 h-2 rounded-full transition-all shadow-lg"
-                        style={{ width: `${project.progress}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-end">
-                    <div className="text-sm text-slate-600">
-                      <div className="mb-2">{Math.floor(Math.random() * 5) + 2} AI Roles</div>
-                      <div className="flex items-center">
-                        <Clock className="mr-1 h-3 w-3" />
-                        {getRelativeTime(project.last_open_time)}
+                  ))}
+                </div>
+              ) : paginatedProjects.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-indigo-200 bg-white/70 p-10 text-center space-y-3 h-[240px] flex flex-col justify-center">
+                  <h3 className="text-lg font-medium text-slate-900">还没有项目</h3>
+                  <p className="text-sm text-slate-600">点击右上角的「新建项目」即可开始。</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-6 h-[520px]">
+                  {paginatedProjects.map((project) => (
+                    <div
+                      key={project.project_uuid}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleOpenProject(project)}
+                      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          handleOpenProject(project);
+                        }
+                      }}
+                      className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50/30 to-indigo-50/20 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 group"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-sm"></div>
+                            <Badge
+                              variant="secondary"
+                              className="border-0 bg-gradient-to-r from-indigo-500/15 to-purple-500/15 text-indigo-700 font-medium text-xs px-2 py-1"
+                            >
+                              Project
+                            </Badge>
+                          </div>
+                          <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-indigo-900 transition-colors">
+                            {project.project_name.slice(0, 25)}
+                            {project.project_name.length > 25 ? '…' : ''}
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenSettings(project);
+                            }}
+                            aria-label="设置项目"
+                          >
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDeleteProject(project.project_uuid);
+                            }}
+                            aria-label="删除项目"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 mb-4">
+                        <p className="text-sm text-slate-600 leading-relaxed group-hover:text-slate-700 transition-colors">
+                          {project.description
+                            ? project.description.length > 80
+                              ? `${project.description.slice(0, 80)}…`
+                              : project.description
+                            : '暂无描述'}
+                        </p>
+                      </div>
+                      
+                      <div className="text-xs text-slate-500 space-y-2 pt-3 border-t border-slate-100/50">
+                        <div className="flex items-center gap-2 text-indigo-600 font-medium">
+                          <CalendarClock className="h-3 w-3" />
+                          <span>创建 {formatDateTime(project.create_time)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-purple-600 font-medium">
+                          <Clock className="h-3 w-3" />
+                          <span>最近 {formatDateTime(project.last_open_time)}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 h-8 w-8"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleOpenSettings(project);
-                        }}
-                        aria-label="设置项目"
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeleteProject(project.project_uuid);
-                        }}
-                        aria-label="删除项目"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent Activity */}
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">Recent Activity</h2>
-          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-white to-indigo-50/30">
-            <div className="space-y-4">
-              {projects.slice(0, 3).map((project, index) => (
-                <div key={project.project_uuid} className="flex items-start gap-4 pb-4 border-b border-indigo-100 last:border-0 last:pb-0">
-                  <div className="w-2 h-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full mt-2 shadow-lg" />
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-900">{project.project_name}</div>
-                    <div className="text-sm text-slate-600">Project updated with new features</div>
-                  </div>
-                  <div className="text-sm text-slate-500">{getRelativeTime(project.last_open_time)}</div>
-                </div>
-              ))}
-              {projects.length === 0 && (
-                <div className="text-center text-slate-500 py-8">
-                  <Activity className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                  <p>No recent activity</p>
-                  <p className="text-sm">Create your first project to see activity here</p>
+                  ))}
+                  
+                  {/* 占位符 */}
+                  {[...Array(placeholderCount)].map((_, index) => (
+                    // eslint-disable-next-line react/no-array-index-key
+                    <div key={`placeholder-${index}`} className="invisible" />
+                  ))}
                 </div>
               )}
-            </div>
+            </CardContent>
           </Card>
         </div>
       </div>

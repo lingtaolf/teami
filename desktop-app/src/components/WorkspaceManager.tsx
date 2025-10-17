@@ -67,7 +67,11 @@ function formatDateTime(value?: string | null) {
   }
 }
 
-export function WorkspaceManager() {
+interface WorkspaceManagerProps {
+  onOpenWorkspace: (workspace: WorkspaceRecord) => void;
+}
+
+export function WorkspaceManager({ onOpenWorkspace }: WorkspaceManagerProps) {
   const [workspaces, setWorkspaces] = useState<WorkspaceRecord[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -154,7 +158,7 @@ export function WorkspaceManager() {
     }
   }
 
-  async function handleOpenWorkspace(id: number) {
+  async function handleOpenWorkspace(workspace: WorkspaceRecord) {
     try {
       const api = workspaceApi;
       if (!api) {
@@ -162,8 +166,12 @@ export function WorkspaceManager() {
         return;
       }
 
-      await api.updateLastOpen(id);
+      // 更新最后访问时间
+      await api.updateLastOpen(workspace.id);
       await refreshWorkspaces(api);
+      
+      // 导航到dashboard页面
+      onOpenWorkspace(workspace);
     } catch (error) {
       const message = error instanceof Error ? error.message : '更新 workspace 信息失败';
       setListError(message);
@@ -590,11 +598,11 @@ export function WorkspaceManager() {
                         key={workspace.id}
                         role="button"
                         tabIndex={0}
-                        onClick={() => handleOpenWorkspace(workspace.id)}
+                        onClick={() => handleOpenWorkspace(workspace)}
                         onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault();
-                            handleOpenWorkspace(workspace.id);
+                            handleOpenWorkspace(workspace);
                           }
                         }}
                         className="w-[calc(33.333%-16px)] min-w-[280px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-3xl"

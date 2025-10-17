@@ -30,6 +30,7 @@ Note: Desktop packaging requires Xcode Command Line Tools on macOS.
 The desktop application uses React components with:
 - **Feature components**: Dashboard, ProjectCreationFlow, ProjectWorkspace, AIRolesConfig, etc. in `src/components/`
 - **UI primitives**: Radix UI-based components in `src/components/ui/` following shadcn/ui patterns
+- **AI/Model services**: Model calling and AI-related functionality in `src/agents/`
 - **Styling**: Tailwind CSS with semantic color variables in `src/styles/globals.css`
 - **Icons**: Lucide React for consistent iconography
 
@@ -92,6 +93,7 @@ teami/
 │   ├── electron/       # Main process and preload scripts
 │   ├── src/           # React components and application code
 │   │   ├── components/ # Feature components + UI primitives
+│   │   ├── agents/     # AI model calling and agent services
 │   │   ├── styles/     # Global CSS and theme variables
 │   │   └── main.tsx    # Application entry point
 │   └── package.json   # Dependencies and build scripts

@@ -66,14 +66,35 @@ export function Dashboard({ onCreateProject, onOpenProject }: DashboardProps) {
     const variants = {
       active: { variant: 'default' as const, icon: Activity, label: 'Active', className: 'bg-gradient-to-r from-emerald-500 to-teal-600 border-0 shadow-md' },
       completed: { variant: 'default' as const, icon: CheckCircle2, label: 'Completed', className: 'bg-gradient-to-r from-purple-500 to-pink-600 border-0 shadow-md' },
-      planning: { variant: 'secondary' as const, icon: Clock, label: 'Planning', className: 'bg-gradient-to-r from-orange-400 to-amber-500 border-0 text-white shadow-md' }
+      planning: { variant: 'secondary' as const, icon: Clock, label: 'Planning', className: 'bg-gradient-to-r from-orange-400 to-amber-500 border-0 text-white shadow-md' },
+      pending: { variant: 'secondary' as const, icon: Clock, label: 'Pending', className: 'bg-gradient-to-r from-sky-400 to-blue-500 border-0 text-white shadow-md' },
+      draft: { variant: 'secondary' as const, icon: AlertCircle, label: 'Draft', className: 'bg-gradient-to-r from-slate-400 to-slate-600 border-0 text-white shadow-md' }
     };
-    const config = variants[status as keyof typeof variants];
-    const Icon = config.icon;
+    const normalizedStatus = status?.toLowerCase().replace(/\s+/g, '-');
+    const formatLabel = (value: string) =>
+      value
+        ? value
+            .replace(/[-_]/g, ' ')
+            .split(' ')
+            .filter(Boolean)
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ')
+        : 'Unknown';
+    const config = normalizedStatus
+      ? variants[normalizedStatus as keyof typeof variants]
+      : undefined;
+    const fallbackConfig = {
+      variant: 'secondary' as const,
+      icon: AlertCircle,
+      label: formatLabel(status || 'Unknown'),
+      className: 'bg-gradient-to-r from-slate-500 via-slate-600 to-slate-700 border-0 text-white shadow-md'
+    };
+    const statusConfig = config ?? fallbackConfig;
+    const Icon = statusConfig.icon;
     return (
-      <Badge variant={config.variant} className={config.className}>
+      <Badge variant={statusConfig.variant} className={statusConfig.className}>
         <Icon className="mr-1 h-3 w-3" />
-        {config.label}
+        {statusConfig.label}
       </Badge>
     );
   };

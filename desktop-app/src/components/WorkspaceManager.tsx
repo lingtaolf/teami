@@ -27,22 +27,9 @@ import {
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Alert, AlertDescription } from './ui/alert';
+import { APP_CONSTANTS } from '../constants';
+import { formatDateTime, limitString, getRandomWorkspaceColor } from '../utils';
 import type { WorkspaceRecord } from '../types/global';
-
-const MAX_WORKSPACES = 5;
-const PAGE_SIZE = 6;
-const NAME_LIMIT = 10;
-const DESCRIPTION_LIMIT = 100;
-
-
-const WORKSPACE_COLORS = [
-  'bg-gradient-to-br from-indigo-50 via-white to-indigo-50/30 ring-1 ring-indigo-100/50 shadow-indigo-100/40',
-  'bg-gradient-to-br from-purple-50 via-white to-purple-50/30 ring-1 ring-purple-100/50 shadow-purple-100/40',
-  'bg-gradient-to-br from-blue-50 via-white to-blue-50/30 ring-1 ring-blue-100/50 shadow-blue-100/40',
-  'bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30 ring-1 ring-emerald-100/50 shadow-emerald-100/40',
-  'bg-gradient-to-br from-orange-50 via-white to-orange-50/30 ring-1 ring-orange-100/50 shadow-orange-100/40',
-  'bg-gradient-to-br from-rose-50 via-white to-rose-50/30 ring-1 ring-rose-100/50 shadow-rose-100/40'
-];
 
 const initialForm = {
   name: '',
@@ -90,7 +77,7 @@ export function WorkspaceManager({ onOpenWorkspace }: WorkspaceManagerProps) {
     typeof window !== 'undefined' ? window.teamiNative?.workspaces : undefined;
   const apiUnavailableMessage = '本地 workspace API 未初始化，请通过桌面客户端访问。';
 
-  const canCreateWorkspace = workspaces.length < MAX_WORKSPACES;
+  const canCreateWorkspace = workspaces.length < APP_CONSTANTS.MAX_WORKSPACES;
 
   const latestCreatedAt = useMemo(() => {
     if (!workspaces.length) {
@@ -129,14 +116,14 @@ export function WorkspaceManager({ onOpenWorkspace }: WorkspaceManagerProps) {
   const totalPages =
     sortedWorkspaces.length === 0
       ? 0
-      : Math.ceil(sortedWorkspaces.length / PAGE_SIZE);
+      : Math.ceil(sortedWorkspaces.length / APP_CONSTANTS.WORKSPACE_PAGE_SIZE);
 
   const paginatedWorkspaces = useMemo(() => {
-    const start = currentPage * PAGE_SIZE;
-    return sortedWorkspaces.slice(start, start + PAGE_SIZE);
+    const start = currentPage * APP_CONSTANTS.WORKSPACE_PAGE_SIZE;
+    return sortedWorkspaces.slice(start, start + APP_CONSTANTS.WORKSPACE_PAGE_SIZE);
   }, [sortedWorkspaces, currentPage]);
 
-  const placeholderCount = Math.max(0, PAGE_SIZE - paginatedWorkspaces.length);
+  const placeholderCount = Math.max(0, APP_CONSTANTS.WORKSPACE_PAGE_SIZE - paginatedWorkspaces.length);
 
   async function refreshWorkspaces(api = workspaceApi) {
     if (!api) {
@@ -291,28 +278,28 @@ export function WorkspaceManager({ onOpenWorkspace }: WorkspaceManagerProps) {
   function handleNameInput(value: string) {
     setFormValues((prev) => ({
       ...prev,
-      name: value.slice(0, NAME_LIMIT)
+      name: limitString(value, APP_CONSTANTS.WORKSPACE_NAME_LIMIT)
     }));
   }
 
   function handleDescriptionInput(value: string) {
     setFormValues((prev) => ({
       ...prev,
-      description: value.slice(0, DESCRIPTION_LIMIT)
+      description: limitString(value, APP_CONSTANTS.WORKSPACE_DESCRIPTION_LIMIT)
     }));
   }
 
   function handleEditNameInput(value: string) {
     setEditFormValues((prev) => ({
       ...prev,
-      name: value.slice(0, NAME_LIMIT)
+      name: limitString(value, APP_CONSTANTS.WORKSPACE_NAME_LIMIT)
     }));
   }
 
   function handleEditDescriptionInput(value: string) {
     setEditFormValues((prev) => ({
       ...prev,
-      description: value.slice(0, DESCRIPTION_LIMIT)
+      description: limitString(value, APP_CONSTANTS.WORKSPACE_DESCRIPTION_LIMIT)
     }));
   }
 
@@ -389,11 +376,11 @@ export function WorkspaceManager({ onOpenWorkspace }: WorkspaceManagerProps) {
                       value={formValues.name}
                       onChange={(event) => handleNameInput(event.target.value)}
                       placeholder="例如：亚太交付团队"
-                      maxLength={NAME_LIMIT}
+                      maxLength={APP_CONSTANTS.WORKSPACE_NAME_LIMIT}
                       className="pr-14"
                     />
                     <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">
-                      {formValues.name.length}/10
+                      {formValues.name.length}/{APP_CONSTANTS.WORKSPACE_NAME_LIMIT}
                     </span>
                   </div>
                 </div>
@@ -408,10 +395,10 @@ export function WorkspaceManager({ onOpenWorkspace }: WorkspaceManagerProps) {
                       onChange={(event) => handleDescriptionInput(event.target.value)}
                       placeholder="补充背景信息，帮助团队快速了解该 workspace。"
                       className="min-h-[96px] pr-16"
-                      maxLength={DESCRIPTION_LIMIT}
+                      maxLength={APP_CONSTANTS.WORKSPACE_DESCRIPTION_LIMIT}
                     />
                     <span className="pointer-events-none absolute bottom-2 right-3 text-xs text-slate-400">
-                      {formValues.description.length}/100
+                      {formValues.description.length}/{APP_CONSTANTS.WORKSPACE_DESCRIPTION_LIMIT}
                     </span>
                   </div>
                 </div>
@@ -457,11 +444,11 @@ export function WorkspaceManager({ onOpenWorkspace }: WorkspaceManagerProps) {
                       value={editFormValues.name}
                       onChange={(event) => handleEditNameInput(event.target.value)}
                       placeholder="例如：亚太交付团队"
-                      maxLength={NAME_LIMIT}
+                      maxLength={APP_CONSTANTS.WORKSPACE_NAME_LIMIT}
                       className="pr-14"
                     />
                     <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">
-                      {editFormValues.name.length}/10
+                      {editFormValues.name.length}/{APP_CONSTANTS.WORKSPACE_NAME_LIMIT}
                     </span>
                   </div>
                 </div>
@@ -476,10 +463,10 @@ export function WorkspaceManager({ onOpenWorkspace }: WorkspaceManagerProps) {
                       onChange={(event) => handleEditDescriptionInput(event.target.value)}
                       placeholder="补充背景信息，帮助团队快速了解该 workspace。"
                       className="min-h-[96px] pr-16"
-                      maxLength={DESCRIPTION_LIMIT}
+                      maxLength={APP_CONSTANTS.WORKSPACE_DESCRIPTION_LIMIT}
                     />
                     <span className="pointer-events-none absolute bottom-2 right-3 text-xs text-slate-400">
-                      {editFormValues.description.length}/100
+                      {editFormValues.description.length}/{APP_CONSTANTS.WORKSPACE_DESCRIPTION_LIMIT}
                     </span>
                   </div>
                 </div>
@@ -571,7 +558,7 @@ export function WorkspaceManager({ onOpenWorkspace }: WorkspaceManagerProps) {
             <CardContent className="space-y-6">
               {loading ? (
                 <div className="flex flex-wrap gap-6 h-[520px]">
-                  {[...Array(PAGE_SIZE)].map((_, index) => (
+                  {[...Array(APP_CONSTANTS.WORKSPACE_PAGE_SIZE)].map((_, index) => (
                     // eslint-disable-next-line react/no-array-index-key
                     <div
                       key={index}
@@ -591,7 +578,7 @@ export function WorkspaceManager({ onOpenWorkspace }: WorkspaceManagerProps) {
               ) : (
                 <div className="flex flex-wrap gap-6 h-[520px]">
                   {paginatedWorkspaces.map((workspace, index) => {
-                    const colorClass = WORKSPACE_COLORS[workspace.id % WORKSPACE_COLORS.length];
+                    const colorClass = getRandomWorkspaceColor(APP_CONSTANTS.WORKSPACE_COLORS);
                     
                     return (
                       <div

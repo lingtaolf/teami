@@ -3,8 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { WorkspaceManager } from './components/WorkspaceManager';
 import { Dashboard } from './components/Dashboard';
 import type { WorkspaceRecord } from './types/global';
-
-type ViewType = 'workspace' | 'teams' | 'members' | 'dashboard';
+import type { ViewType } from './constants';
 
 function PlaceholderPanel({ title, description }: { title: string; description: string }) {
   return (
@@ -69,7 +68,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-white">
-      <Sidebar currentView={currentView} onNavigate={(view) => setCurrentView(view as ViewType)} />
+      <Sidebar currentView={currentView} onNavigate={(view: ViewType) => setCurrentView(view)} />
       {renderView()}
     </div>
   );
